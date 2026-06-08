@@ -118,7 +118,12 @@ describe('PracticePage recording flow', () => {
         expect.objectContaining({
           taskType: 'picture-description',
           taskId: 'picture-office-whiteboard',
-          title: '办公室白板讨论'
+          title: '办公室白板讨论',
+          reviewSummary: expect.objectContaining({
+            source: 'local-rules',
+            durationBand: 'too-short',
+            targetDurationSec: 60
+          })
         })
       )
     );
@@ -144,7 +149,11 @@ describe('PracticePage recording flow', () => {
         expect.objectContaining({
           taskType: 'scripted-dialogue',
           taskId: 'dialogue-coffee-order',
-          title: '咖啡店点单'
+          title: '咖啡店点单',
+          reviewSummary: expect.objectContaining({
+            targetDurationSec: 45,
+            checklist: expect.arrayContaining(['覆盖 3 个回应点'])
+          })
         })
       )
     );
@@ -172,7 +181,11 @@ describe('PracticePage recording flow', () => {
         expect.objectContaining({
           taskType: 'scripted-dialogue',
           taskId: 'dialogue-coffee-order',
-          title: '咖啡店点单'
+          title: '咖啡店点单',
+          reviewSummary: expect.objectContaining({
+            targetDurationSec: 45,
+            checklist: expect.arrayContaining(['覆盖 3 个回应点'])
+          })
         })
       )
     );

@@ -12,6 +12,7 @@ export async function createRecording(input: NewRecordingInput): Promise<Recordi
     blob: input.blob,
     mimeType: input.mimeType,
     durationMs: input.durationMs,
+    reviewSummary: input.reviewSummary,
     createdAt: input.createdAt ?? nowIso()
   };
 

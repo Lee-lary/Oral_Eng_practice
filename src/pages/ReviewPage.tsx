@@ -37,6 +37,30 @@ function RecordingAudio({ recording }: { recording: RecordingRecord }) {
   );
 }
 
+function RecordingReviewSummary({ recording }: { recording: RecordingRecord }) {
+  if (!recording.reviewSummary) {
+    return <div className="recording-review-summary-placeholder" aria-hidden="true" />;
+  }
+
+  return (
+    <section className="recording-review-summary" aria-label={`${recording.title} 本地复盘`}>
+      <div className="review-summary-header">
+        <strong>本地复盘</strong>
+        <span>{recording.reviewSummary.durationLabel}</span>
+      </div>
+      {recording.reviewSummary.targetDurationSec && (
+        <p>建议目标：{recording.reviewSummary.targetDurationSec} 秒</p>
+      )}
+      <ul>
+        {recording.reviewSummary.checklist.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <p>{recording.reviewSummary.retryTip}</p>
+    </section>
+  );
+}
+
 function RecordingHistoryItem({
   isDeleting,
   onDelete,
@@ -56,6 +80,8 @@ function RecordingHistoryItem({
           {formatDuration(recording.durationMs)} · {new Date(recording.createdAt).toLocaleString()}
         </p>
       </div>
+
+      <RecordingReviewSummary recording={recording} />
 
       <RecordingAudio recording={recording} />
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, RotateCcw, Save, Square } from 'lucide-react';
 import { createRecording } from '../data/recordingRepository';
 import { formatDuration } from '../domain/practice';
+import { buildLocalReviewSummary } from '../domain/recordingReview';
 import {
   getPracticeTaskById,
   getPracticeTaskTypeLabel,
@@ -192,7 +193,8 @@ function PracticePage() {
         title: taskToSave.title,
         blob: recordingToSave.blob,
         mimeType: recordingToSave.mimeType,
-        durationMs: recordingToSave.durationMs
+        durationMs: recordingToSave.durationMs,
+        reviewSummary: buildLocalReviewSummary(taskToSave, recordingToSave.durationMs)
       });
 
       if (currentRecordingRef.current === recordingToSave) {

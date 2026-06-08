@@ -579,7 +579,7 @@ h1 {
 
 .recording-item {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.2fr) 44px;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.1fr) minmax(220px, 1fr) 44px;
   align-items: center;
   gap: 16px;
   border: 1px solid #dde3ea;
@@ -595,6 +595,56 @@ h1 {
 .recording-item audio {
   width: 100%;
   min-width: 0;
+}
+
+.recording-review-summary {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid #d6dee8;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.recording-review-summary-placeholder {
+  min-width: 0;
+}
+
+.review-summary-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-summary-header strong {
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.review-summary-header span {
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #ecfdf3;
+  color: #067647;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.recording-review-summary p {
+  margin: 0;
+  color: #465568;
+  font-size: 14px;
+}
+
+.recording-review-summary ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: #344256;
+  font-size: 14px;
 }
 
 .icon-button {

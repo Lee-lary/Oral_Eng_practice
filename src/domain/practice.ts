@@ -8,7 +8,19 @@ export interface RecordingRecord {
   blob: Blob;
   mimeType: string;
   durationMs: number;
+  reviewSummary?: RecordingReviewSummary;
   createdAt: string;
+}
+
+export type RecordingDurationBand = 'too-short' | 'on-target' | 'too-long';
+
+export interface RecordingReviewSummary {
+  source: 'local-rules';
+  durationBand: RecordingDurationBand;
+  durationLabel: string;
+  targetDurationSec?: number;
+  checklist: string[];
+  retryTip: string;
 }
 
 export type NewRecordingInput = Omit<RecordingRecord, 'id' | 'createdAt'> & {

@@ -67,4 +67,37 @@ describe('recordingRepository', () => {
 
     await expect(listRecordings()).resolves.toEqual([]);
   });
+
+  it('persists local review summaries with recordings', async () => {
+    const blob = new Blob(['audio'], { type: 'audio/webm' });
+
+    await createRecording({
+      taskType: 'scripted-dialogue',
+      taskId: 'dialogue-coffee-order',
+      title: 'Coffee order',
+      blob,
+      mimeType: blob.type,
+      durationMs: 45_000,
+      reviewSummary: {
+        source: 'local-rules',
+        durationBand: 'on-target',
+        durationLabel: '节奏合适',
+        targetDurationSec: 45,
+        checklist: ['覆盖 3 个回应点'],
+        retryTip: '下一轮继续按 NPC 轮次推进。'
+      },
+      createdAt: '2026-06-05T10:00:00.000Z'
+    });
+
+    await expect(listRecordings()).resolves.toEqual([
+      expect.objectContaining({
+        taskId: 'dialogue-coffee-order',
+        reviewSummary: expect.objectContaining({
+          source: 'local-rules',
+          durationBand: 'on-target',
+          checklist: ['覆盖 3 个回应点']
+        })
+      })
+    ]);
+  });
 });

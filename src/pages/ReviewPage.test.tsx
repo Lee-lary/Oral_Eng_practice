@@ -45,11 +45,40 @@ describe('ReviewPage history flow', () => {
   });
 
   it('renders saved recordings', async () => {
-    render(<ReviewPage />);
+    const { container } = render(<ReviewPage />);
 
     expect(await screen.findByText('自由录音练习')).toBeInTheDocument();
     expect(screen.getAllByText('自由录音')).toHaveLength(2);
     expect(screen.getByText(/1:01/)).toBeInTheDocument();
+    expect(screen.queryByText('本地复盘')).not.toBeInTheDocument();
+    expect(container.querySelector('.recording-review-summary-placeholder')).toBeInTheDocument();
+  });
+
+  it('renders local review summaries when available', async () => {
+    mocks.listRecordings.mockResolvedValue([
+      createSavedRecording({
+        taskType: 'picture-description',
+        taskId: 'picture-office-whiteboard',
+        title: '办公室白板讨论',
+        reviewSummary: {
+          source: 'local-rules',
+          durationBand: 'too-short',
+          durationLabel: '时长偏短',
+          targetDurationSec: 60,
+          checklist: ['总述画面', '描述至少 3 个细节', '补充合理推测'],
+          retryTip: '下一轮先按“总述-细节-推测”说满 60 秒。'
+        }
+      })
+    ]);
+
+    render(<ReviewPage />);
+
+    expect(await screen.findByText('办公室白板讨论')).toBeInTheDocument();
+    expect(screen.getByText('本地复盘')).toBeInTheDocument();
+    expect(screen.getByText('时长偏短')).toBeInTheDocument();
+    expect(screen.getByText('建议目标：60 秒')).toBeInTheDocument();
+    expect(screen.getByText('描述至少 3 个细节')).toBeInTheDocument();
+    expect(screen.getByText('下一轮先按“总述-细节-推测”说满 60 秒。')).toBeInTheDocument();
   });
 
   it('filters recordings by task type', async () => {
