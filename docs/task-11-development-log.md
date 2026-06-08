@@ -37,11 +37,12 @@
 - `npm test`：通过，7 个测试文件、42 个测试。
 - `npm run build`：通过，`tsc -b` 和 `vite build` 均完成。
 - `Invoke-WebRequest http://127.0.0.1:5173/practice`：返回 HTTP 200，开发服务器练习页可访问。
-- `npm run e2e -- --project=webkit`：未通过，原因是本机缺少 `C:\Users\Lee\AppData\Local\ms-playwright\webkit-2287\Playwright.exe`，不是页面断言失败。
-- 已尝试两次执行 `npx playwright install webkit`，分别在约 3 分钟和约 10 分钟后超时，未完成 WebKit 浏览器下载。本轮将其记录为环境安装阻塞，后续可在网络稳定时重试。
+- `npm run e2e -- --project=webkit`：曾误报缺少 `C:\Users\Lee\AppData\Local\ms-playwright\webkit-2287\Playwright.exe`。后续确认 WebKit 已安装在项目内缓存 `D:\Eng_practice\.tools\ms-playwright`，问题不是浏览器未安装，而是 Playwright 未读取项目内缓存路径。
+- 已在 `playwright.config.ts` 中默认设置 `PLAYWRIGHT_BROWSERS_PATH` 指向 `${process.cwd()}\\.tools\\ms-playwright`，并新增 `docs/development-environment.md` 记录该环境约定。
+- 修正后重跑 `npm run e2e -- --project=webkit`：通过，2 个 WebKit E2E 测试。
 
 ## 当前结论
 
 - 本轮模块化导航已完成并通过可用的单元、集成和构建验收。
 - 已确认首页、复盘页、录音仓库、录音 Hook、练习页保存流程没有在自动化测试层面回归。
-- 待后续环境事项：完成 Playwright WebKit 浏览器安装后，重跑 `npm run e2e -- --project=webkit`。
+- 待后续环境事项：如果 WebKit E2E 再次报找不到浏览器，优先检查 `PLAYWRIGHT_BROWSERS_PATH` 是否指向 `D:\Eng_practice\.tools\ms-playwright`，不要重复下载安装到用户缓存目录。

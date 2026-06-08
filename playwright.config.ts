@@ -1,10 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
 declare const process: {
+  cwd: () => string;
   env: {
     CI?: string;
+    PLAYWRIGHT_BROWSERS_PATH?: string;
   };
 };
+
+process.env.PLAYWRIGHT_BROWSERS_PATH ??= `${process.cwd()}\\.tools\\ms-playwright`;
 
 export default defineConfig({
   testDir: 'tests/e2e',
