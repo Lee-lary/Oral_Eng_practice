@@ -1,0 +1,143 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import PracticePage from './PracticePage';
+
+const mocks = vi.hoisted(() => ({
+  createRecording: vi.fn(),
+  useRecorder: vi.fn()
+}));
+
+vi.mock('../data/recordingRepository', () => ({
+  createRecording: mocks.createRecording
+}));
+
+vi.mock('../hooks/useRecorder', () => ({
+  useRecorder: mocks.useRecorder
+}));
+
+function createLatestRecording(durationMs = 4_200) {
+  return {
+    blob: new Blob(['audio'], { type: 'audio/webm' }),
+    durationMs,
+    mimeType: 'audio/webm'
+  };
+}
+
+function createRecorderState(latestRecording = createLatestRecording()) {
+  return {
+    status: 'ready',
+    latestRecording,
+    error: null,
+    isRecording: false,
+    start: vi.fn(),
+    stop: vi.fn(),
+    reset: vi.fn()
+  };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
+describe('PracticePage recording flow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useRecorder.mockReturnValue(createRecorderState());
+    mocks.createRecording.mockResolvedValue({});
+  });
+
+  it('renders the ready recording playback state', () => {
+    render(<PracticePage />);
+
+    expect(screen.getByRole('heading', { name: '录音练习' })).toBeInTheDocument();
+    expect(screen.getByText('0:04')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '保存本轮录音' })).toBeInTheDocument();
+  });
+
+  it('allows editing the practice title', async () => {
+    const user = userEvent.setup();
+    render(<PracticePage />);
+
+    const titleInput = screen.getByLabelText('练习标题');
+    await user.clear(titleInput);
+    await user.type(titleInput, '今日跟读练习');
+
+    expect(titleInput).toHaveValue('今日跟读练习');
+  });
+
+  it('prevents duplicate saves for the same recording', async () => {
+    const user = userEvent.setup();
+    const save = createDeferred<unknown>();
+    mocks.createRecording.mockReturnValue(save.promise);
+    render(<PracticePage />);
+
+    const saveButton = screen.getByRole('button', { name: '保存本轮录音' });
+    await user.click(saveButton);
+    expect(saveButton).toBeDisabled();
+
+    await user.click(saveButton);
+    expect(mocks.createRecording).toHaveBeenCalledTimes(1);
+
+    save.resolve({});
+    await waitFor(() => expect(screen.getByText('已保存到本地历史记录。')).toBeInTheDocument());
+    expect(saveButton).toBeDisabled();
+  });
+
+  it('shows a recoverable error when saving fails', async () => {
+    const user = userEvent.setup();
+    mocks.createRecording.mockRejectedValue(new Error('storage unavailable'));
+    render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
+
+    expect(await screen.findByText('保存失败，请重试。')).toBeInTheDocument();
+    expect(screen.queryByText('已保存到本地历史记录。')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '保存本轮录音' })).toBeEnabled();
+  });
+
+  it('clears stale save state when the latest recording changes', async () => {
+    const user = userEvent.setup();
+    const firstRecording = createLatestRecording(4_200);
+    const secondRecording = createLatestRecording(8_000);
+    mocks.useRecorder.mockReturnValue(createRecorderState(firstRecording));
+    const { rerender } = render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
+    expect(await screen.findByText('已保存到本地历史记录。')).toBeInTheDocument();
+
+    mocks.useRecorder.mockReturnValue(createRecorderState(secondRecording));
+    rerender(<PracticePage />);
+
+    expect(screen.queryByText('已保存到本地历史记录。')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '保存本轮录音' })).toBeEnabled();
+  });
+
+  it('does not apply a stale save completion to a later recording with matching metadata', async () => {
+    const user = userEvent.setup();
+    const firstRecording = createLatestRecording(4_200);
+    const secondRecording = createLatestRecording(4_200);
+    const save = createDeferred<unknown>();
+    mocks.createRecording.mockReturnValue(save.promise);
+    mocks.useRecorder.mockReturnValue(createRecorderState(firstRecording));
+    const { rerender } = render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
+
+    mocks.useRecorder.mockReturnValue(createRecorderState(secondRecording));
+    rerender(<PracticePage />);
+
+    save.resolve({});
+
+    await waitFor(() => expect(mocks.createRecording).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('已保存到本地历史记录。')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '保存本轮录音' })).toBeEnabled();
+  });
+});
