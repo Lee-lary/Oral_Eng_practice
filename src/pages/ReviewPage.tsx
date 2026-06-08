@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { deleteRecording, listRecordings } from '../data/recordingRepository';
-import { formatDuration, type RecordingRecord } from '../domain/practice';
+import { formatDuration, type PracticeTaskType, type RecordingRecord } from '../domain/practice';
+import { getPracticeTaskTypeLabel, listPracticeTaskTypes } from '../domain/taskCatalog';
+
+type ReviewFilter = 'all' | PracticeTaskType;
+
+const reviewFilters: { label: string; value: ReviewFilter }[] = [
+  { label: '全部', value: 'all' },
+  ...listPracticeTaskTypes().map((type) => ({
+    label: getPracticeTaskTypeLabel(type),
+    value: type
+  }))
+];
 
 function RecordingAudio({ recording }: { recording: RecordingRecord }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -40,6 +51,8 @@ function RecordingHistoryItem({
       <div className="recording-info">
         <h2>{recording.title}</h2>
         <p>
+          <span className="recording-type">{getPracticeTaskTypeLabel(recording.taskType)}</span>
+          {' · '}
           {formatDuration(recording.durationMs)} · {new Date(recording.createdAt).toLocaleString()}
         </p>
       </div>
@@ -67,6 +80,10 @@ function ReviewPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(() => new Set());
+  const [filter, setFilter] = useState<ReviewFilter>('all');
+
+  const filteredRecordings =
+    filter === 'all' ? recordings : recordings.filter((recording) => recording.taskType === filter);
 
   async function refresh() {
     if (!mountedRef.current) {
@@ -146,6 +163,24 @@ function ReviewPage() {
       <h1 id="review-title">历史记录</h1>
       <p>保存后的本地录音会显示在这里，你可以回放表现、比较不同练习轮次，并删除不再需要的记录。</p>
 
+      <div className="review-filters" aria-label="复盘筛选">
+        {reviewFilters.map((nextFilter) => (
+          <button
+            type="button"
+            aria-pressed={filter === nextFilter.value}
+            key={nextFilter.value}
+            onClick={() => setFilter(nextFilter.value)}
+          >
+            {nextFilter.label}
+          </button>
+        ))}
+      </div>
+      {!isLoading && (
+        <p className="review-count">
+          共 {recordings.length} 条，当前显示 {filteredRecordings.length} 条
+        </p>
+      )}
+
       <div className="review-history" aria-live="polite">
         {isLoading && <p className="notice">正在读取本地记录...</p>}
         {errorMessage && <p className="error">{errorMessage}</p>}
@@ -157,9 +192,16 @@ function ReviewPage() {
           </section>
         )}
 
-        {!isLoading && recordings.length > 0 && (
+        {!isLoading && recordings.length > 0 && filteredRecordings.length === 0 && (
+          <section className="empty-state" aria-labelledby="empty-filtered-recordings-title">
+            <h2 id="empty-filtered-recordings-title">没有符合筛选的录音</h2>
+            <p>切换筛选条件，或先完成对应类型的练习。</p>
+          </section>
+        )}
+
+        {!isLoading && filteredRecordings.length > 0 && (
           <ul className="recording-list" aria-label="录音历史">
-            {recordings.map((recording) => (
+            {filteredRecordings.map((recording) => (
               <RecordingHistoryItem
                 isDeleting={deletingIds.has(recording.id)}
                 key={recording.id}

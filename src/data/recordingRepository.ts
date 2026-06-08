@@ -7,6 +7,7 @@ export async function createRecording(input: NewRecordingInput): Promise<Recordi
   const recording: RecordingRecord = {
     id: createId('recording'),
     taskType: input.taskType,
+    taskId: input.taskId,
     title: input.title.trim() || DEFAULT_TITLE,
     blob: input.blob,
     mimeType: input.mimeType,

@@ -2,19 +2,104 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, RotateCcw, Save, Square } from 'lucide-react';
 import { createRecording } from '../data/recordingRepository';
 import { formatDuration } from '../domain/practice';
+import { getPracticeTaskById, getPracticeTaskTypeLabel, listPracticeTasks, type PracticeTask } from '../domain/taskCatalog';
 import { useRecorder } from '../hooks/useRecorder';
 
 type LatestRecording = NonNullable<ReturnType<typeof useRecorder>['latestRecording']>;
 
+const practiceTasks = listPracticeTasks();
+const defaultTask = practiceTasks[0];
+
+function TaskDetail({ task }: { task: PracticeTask }) {
+  if (task.type === 'scripted-dialogue') {
+    return (
+      <section className="task-detail" aria-label="情境对话任务说明">
+        <div>
+          <span className="task-meta">{getPracticeTaskTypeLabel(task.type)} · {task.difficulty} · {task.durationSec} 秒</span>
+          <h2>{task.title}</h2>
+          <p>{task.scenario}</p>
+          <p className="task-goal">目标：{task.userGoal}</p>
+        </div>
+
+        <div className="task-columns">
+          <section>
+            <h3>NPC 台词</h3>
+            <ol>
+              {task.npcLines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ol>
+          </section>
+          <section>
+            <h3>你需要完成</h3>
+            <ol>
+              {task.userPrompts.map((prompt) => (
+                <li key={prompt}>{prompt}</li>
+              ))}
+            </ol>
+          </section>
+        </div>
+
+        <ExpressionList expressions={task.usefulExpressions} />
+      </section>
+    );
+  }
+
+  return (
+    <section className="task-detail" aria-label="看图描述任务说明">
+      <div>
+        <span className="task-meta">{getPracticeTaskTypeLabel(task.type)} · {task.difficulty} · {task.durationSec} 秒</span>
+        <h2>{task.title}</h2>
+        <p>{task.scene}</p>
+      </div>
+
+      <div className="picture-prompt" role="img" aria-label={task.imageAlt}>
+        <span>{task.imageAlt}</span>
+      </div>
+
+      <section>
+        <h3>描述步骤</h3>
+        <ol>
+          {task.descriptionSteps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </section>
+
+      <ExpressionList expressions={task.usefulExpressions} />
+    </section>
+  );
+}
+
+function ExpressionList({ expressions }: { expressions: string[] }) {
+  return (
+    <section>
+      <h3>可用表达</h3>
+      <ul className="expression-list">
+        {expressions.map((expression) => (
+          <li key={expression}>{expression}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function PracticePage() {
   const recorder = useRecorder();
   const currentRecordingRef = useRef<LatestRecording | null>(null);
-  const [title, setTitle] = useState('自由录音练习');
+  const selectedTaskRef = useRef<PracticeTask>(defaultTask);
+  const [selectedTaskId, setSelectedTaskId] = useState(defaultTask.id);
+  const [recordingTaskId, setRecordingTaskId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savedRecording, setSavedRecording] = useState<LatestRecording | null>(null);
+
+  const selectedTask = getPracticeTaskById(selectedTaskId) ?? defaultTask;
+  const recordingTask = recordingTaskId ? getPracticeTaskById(recordingTaskId) : null;
+
+  selectedTaskRef.current = selectedTask;
 
   useEffect(() => {
     currentRecordingRef.current = recorder.latestRecording;
@@ -25,9 +110,11 @@ function PracticePage() {
 
     if (!recorder.latestRecording) {
       setAudioUrl(null);
+      setRecordingTaskId(null);
       return;
     }
 
+    setRecordingTaskId(selectedTaskRef.current.id);
     const nextAudioUrl = URL.createObjectURL(recorder.latestRecording.blob);
     setAudioUrl(nextAudioUrl);
 
@@ -54,20 +141,27 @@ function PracticePage() {
     recorder.start();
   }
 
+  function selectTask(taskId: string) {
+    setSelectedTaskId(taskId);
+    clearSaveState();
+  }
+
   async function saveLatestRecording() {
     if (!recorder.latestRecording || isSaveDisabled) {
       return;
     }
 
     const recordingToSave = recorder.latestRecording;
+    const taskToSave = recordingTask ?? selectedTask;
     setIsSaving(true);
     setSaveMessage(null);
     setSaveError(null);
 
     try {
       await createRecording({
-        taskType: 'free-recording',
-        title,
+        taskType: taskToSave.type,
+        taskId: taskToSave.id,
+        title: taskToSave.title,
         blob: recordingToSave.blob,
         mimeType: recordingToSave.mimeType,
         durationMs: recordingToSave.durationMs
@@ -99,19 +193,27 @@ function PracticePage() {
     <section className="content-panel practice-panel" aria-labelledby="practice-title">
       <p className="eyebrow">Practice</p>
       <h1 id="practice-title">录音练习</h1>
-      <p>完成一轮自由口语录音后，可以在本页回放并保存到本地历史记录。</p>
+      <p>选择一个本地任务，按提示完成英文输出。当前阶段不接入 ASR 或 LLM，先训练连续开口和任务完成度。</p>
+
+      <section className="task-selector" aria-label="练习任务">
+        {practiceTasks.map((task) => (
+          <button
+            className="task-card"
+            type="button"
+            aria-pressed={task.id === selectedTask.id}
+            key={task.id}
+            onClick={() => selectTask(task.id)}
+          >
+            <span>{getPracticeTaskTypeLabel(task.type)}</span>
+            <strong>{task.title}</strong>
+            <small>{task.durationSec} 秒 · {task.difficulty}</small>
+          </button>
+        ))}
+      </section>
+
+      <TaskDetail task={selectedTask} />
 
       <section className="practice-recorder" aria-label="录音面板">
-        <label className="field" htmlFor="practice-title-input">
-          <span>练习标题</span>
-          <input
-            id="practice-title-input"
-            type="text"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </label>
-
         <div className="timer" aria-label="本轮录音时长">
           {durationLabel}
         </div>

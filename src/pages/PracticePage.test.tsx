@@ -24,7 +24,7 @@ function createLatestRecording(durationMs = 4_200) {
   };
 }
 
-function createRecorderState(latestRecording = createLatestRecording()) {
+function createRecorderState(latestRecording: ReturnType<typeof createLatestRecording> | null = createLatestRecording()) {
   return {
     status: 'ready',
     latestRecording,
@@ -58,19 +58,60 @@ describe('PracticePage recording flow', () => {
     render(<PracticePage />);
 
     expect(screen.getByRole('heading', { name: '录音练习' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /咖啡店点单/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /办公室白板讨论/ })).toBeInTheDocument();
     expect(screen.getByText('0:04')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '保存本轮录音' })).toBeInTheDocument();
   });
 
-  it('allows editing the practice title', async () => {
+  it('shows picture description prompts after selecting a picture task', async () => {
     const user = userEvent.setup();
     render(<PracticePage />);
 
-    const titleInput = screen.getByLabelText('练习标题');
-    await user.clear(titleInput);
-    await user.type(titleInput, '今日跟读练习');
+    await user.click(screen.getByRole('button', { name: /办公室白板讨论/ }));
 
-    expect(titleInput).toHaveValue('今日跟读练习');
+    expect(screen.getByText('先用一句话总述画面。')).toBeInTheDocument();
+    expect(screen.getByText('再描述三处可见细节。')).toBeInTheDocument();
+  });
+
+  it('saves the selected task metadata', async () => {
+    const user = userEvent.setup();
+    const recording = createLatestRecording();
+    mocks.useRecorder.mockReturnValue(createRecorderState(null));
+    const { rerender } = render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: /办公室白板讨论/ }));
+    mocks.useRecorder.mockReturnValue(createRecorderState(recording));
+    rerender(<PracticePage />);
+    await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
+
+    await waitFor(() =>
+      expect(mocks.createRecording).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskType: 'picture-description',
+          taskId: 'picture-office-whiteboard',
+          title: '办公室白板讨论'
+        })
+      )
+    );
+  });
+
+  it('keeps a completed recording bound to the task active when it was created', async () => {
+    const user = userEvent.setup();
+    render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: /办公室白板讨论/ }));
+    await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
+
+    await waitFor(() =>
+      expect(mocks.createRecording).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskType: 'scripted-dialogue',
+          taskId: 'dialogue-coffee-order',
+          title: '咖啡店点单'
+        })
+      )
+    );
   });
 
   it('prevents duplicate saves for the same recording', async () => {

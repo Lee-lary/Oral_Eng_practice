@@ -34,4 +34,6 @@
 
 - Git 仓库已初始化在 `main` 分支。
 - Git remote 已设置为 `git@github.com:Lee-lary/Oral_Eng_practice.git`。
-- 下一步：提交全部项目文件并推送到 GitHub。
+- 初始提交已完成并推送到 GitHub。
+- 提交号：`cc8e4d8`
+- 分支状态：`main` 跟踪 `origin/main`。

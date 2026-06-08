@@ -1,8 +1,8 @@
 # 个人英语口语训练器
 
-个人英语口语训练器第一阶段已经实现 PWA 基础应用能力，支持首页、练习页、历史页；支持浏览器麦克风录音、录音回放、IndexedDB 本地保存；并包含 PWA manifest 与 service worker 构建配置。
+个人英语口语训练器第一阶段已经实现 PWA 基础应用能力，支持首页、练习页、复盘页；支持浏览器麦克风录音、录音回放、IndexedDB 本地保存；并包含 PWA manifest 与 service worker 构建配置。
 
-当前范围明确不包含 ASR、TTS、LLM 能力，也不包含云端部署。
+当前阶段仍坚持本地优先：基础练习、录音、回放和复盘不依赖 ASR、TTS、LLM，也不依赖云端部署。
 
 ## 本地运行
 
@@ -13,11 +13,18 @@ npm run dev
 
 启动后打开 <http://127.0.0.1:5173>。
 
-本工作区当前使用便携 Node。如果普通 shell 中 `npm` 不在 `PATH` 上，可以使用 `.node-runtime\node-v24.16.0-win-x64\npm.cmd`，并先将该目录加入 `PATH`：
+本工作区当前使用项目本地 Node 运行时，并已将该目录写入 Windows 用户 PATH。新开的 PowerShell 应可直接使用：
 
 ```powershell
-$env:PATH="D:\Eng_practice\.node-runtime\node-v24.16.0-win-x64;$env:PATH"
-& "D:\Eng_practice\.node-runtime\node-v24.16.0-win-x64\npm.cmd" run dev
+node -v
+npm -v
+```
+
+如果旧终端尚未刷新 PATH，可以临时执行：
+
+```powershell
+$env:PATH="D:\Eng_practice\.tools\nodejs\node-v24.16.0-win-x64;$env:PATH"
+npm run dev
 ```
 
 ## 验证命令
@@ -28,13 +35,43 @@ npm run build
 npm run e2e
 ```
 
-如果 Playwright WebKit 尚未安装，请先运行：
+Playwright WebKit 已安装到 `D:\Eng_practice\.tools\ms-playwright`。如果新环境需要重新安装，可运行：
 
 ```powershell
 npx playwright install webkit
 ```
 
-当前环境可能需要先安装 WebKit，E2E 才能通过。
+已验收的基础命令：
+
+- `node -v`：`v24.16.0`
+- `npm -v`：`11.13.0`
+- `npm test`：7 个测试文件、38 个测试通过
+- `npm run build`：通过
+- `npm run dev`：本地 HTTP 200
+- `webkit.launch()`：可启动，版本 `26.4`
+
+说明：此前 `npm run e2e` 在 Codex 执行环境中出现过 runner 生命周期超时；WebKit 浏览器本身已验证可启动。后续会单独把 E2E 稳定性纳入开发任务。
+
+## 阶段 2 开发范围
+
+阶段 2 启动任务系统与本地题库，优先实现：
+
+- 情境对话：用固定脚本轮次训练真实场景回应。
+- 看图描述：用本地题图和人工元数据训练连续描述。
+- 复盘筛选：按练习类型过滤历史录音，方便比较同类任务表现。
+
+阶段 2 仍不接入 ASR/TTS/LLM，先确保不联网也能完成基础训练。
+
+## 第二阶段手动验收清单
+
+- 进入练习页，选择“咖啡店点单”。
+- 确认页面展示 NPC 台词、用户目标和可用表达。
+- 录音并保存，进入复盘页。
+- 使用“情境对话”筛选，确认记录可见。
+- 回到练习页选择“办公室白板讨论”。
+- 确认页面展示看图描述步骤和画面占位提示。
+- 录音并保存，进入复盘页。
+- 使用“看图描述”筛选，确认只显示看图描述记录。
 
 ## 第一阶段手动验收清单
 

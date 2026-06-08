@@ -21,7 +21,8 @@ describe('recordingRepository', () => {
       createdAt: '2026-06-05T10:00:00.000Z'
     });
     const newer = await createRecording({
-      taskType: 'starter',
+      taskType: 'scripted-dialogue',
+      taskId: 'dialogue-coffee-order',
       title: 'Second attempt',
       blob: newerBlob,
       mimeType: newerBlob.type,
@@ -34,7 +35,8 @@ describe('recordingRepository', () => {
     expect(recordings.map((recording) => recording.id)).toEqual([newer.id, older.id]);
     expect(recordings).toMatchObject([
       {
-        taskType: 'starter',
+        taskType: 'scripted-dialogue',
+        taskId: 'dialogue-coffee-order',
         title: 'Second attempt',
         mimeType: 'audio/webm',
         durationMs: 8_000,

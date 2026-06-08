@@ -1,8 +1,9 @@
-export type PracticeTaskType = 'free-recording' | 'starter' | 'picture-description';
+export type PracticeTaskType = 'free-recording' | 'starter' | 'scripted-dialogue' | 'picture-description';
 
 export interface RecordingRecord {
   id: string;
   taskType: PracticeTaskType;
+  taskId?: string;
   title: string;
   blob: Blob;
   mimeType: string;
