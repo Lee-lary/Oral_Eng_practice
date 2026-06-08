@@ -1,5 +1,7 @@
 import type { PracticeTaskType } from './practice';
 
+export type PracticeModuleId = 'scripted-dialogue' | 'picture-description';
+
 interface BasePracticeTask {
   id: string;
   title: string;
@@ -24,6 +26,13 @@ export interface PictureDescriptionTask extends BasePracticeTask {
 }
 
 export type PracticeTask = ScriptedDialogueTask | PictureDescriptionTask;
+
+export interface PracticeModule {
+  id: PracticeModuleId;
+  title: string;
+  summary: string;
+  taskCount: number;
+}
 
 const PRACTICE_TASKS: PracticeTask[] = [
   {
@@ -105,6 +114,19 @@ const TASK_TYPE_LABELS: Record<PracticeTaskType, string> = {
   'picture-description': '看图描述'
 };
 
+const PRACTICE_MODULES: Omit<PracticeModule, 'taskCount'>[] = [
+  {
+    id: 'scripted-dialogue',
+    title: '情境对话',
+    summary: '用固定脚本轮次练习真实场景回应，适合训练开口和推进对话。'
+  },
+  {
+    id: 'picture-description',
+    title: '看图描述',
+    summary: '根据画面线索组织连续表达，适合训练描述、推测和结构化输出。'
+  }
+];
+
 function cloneTask(task: PracticeTask): PracticeTask {
   if (task.type === 'scripted-dialogue') {
     return {
@@ -124,6 +146,17 @@ function cloneTask(task: PracticeTask): PracticeTask {
 
 export function listPracticeTasks(): PracticeTask[] {
   return PRACTICE_TASKS.map(cloneTask);
+}
+
+export function listPracticeModules(): PracticeModule[] {
+  return PRACTICE_MODULES.map((module) => ({
+    ...module,
+    taskCount: PRACTICE_TASKS.filter((task) => task.type === module.id).length
+  }));
+}
+
+export function listPracticeTasksByModule(moduleId: PracticeModuleId): PracticeTask[] {
+  return PRACTICE_TASKS.filter((task) => task.type === moduleId).map(cloneTask);
 }
 
 export function getPracticeTaskById(id: string): PracticeTask | null {

@@ -58,16 +58,43 @@ describe('PracticePage recording flow', () => {
     render(<PracticePage />);
 
     expect(screen.getByRole('heading', { name: '录音练习' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /进入情境对话/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /进入看图描述/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /咖啡店点单/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /办公室白板讨论/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '保存本轮录音' })).not.toBeInTheDocument();
+  });
+
+  it('shows only the selected module materials after entering a module', async () => {
+    const user = userEvent.setup();
+    render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: /进入情境对话/ }));
+
     expect(screen.getByRole('button', { name: /咖啡店点单/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /酒店入住登记/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /办公室白板讨论/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '返回模块' })).toBeInTheDocument();
+  });
+
+  it('returns from module materials to the module overview', async () => {
+    const user = userEvent.setup();
+    render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: /进入看图描述/ }));
     expect(screen.getByRole('button', { name: /办公室白板讨论/ })).toBeInTheDocument();
-    expect(screen.getByText('0:04')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '保存本轮录音' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '返回模块' }));
+
+    expect(screen.getByRole('button', { name: /进入情境对话/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /办公室白板讨论/ })).not.toBeInTheDocument();
   });
 
   it('shows picture description prompts after selecting a picture task', async () => {
     const user = userEvent.setup();
     render(<PracticePage />);
 
+    await user.click(screen.getByRole('button', { name: /进入看图描述/ }));
     await user.click(screen.getByRole('button', { name: /办公室白板讨论/ }));
 
     expect(screen.getByText('先用一句话总述画面。')).toBeInTheDocument();
@@ -80,6 +107,7 @@ describe('PracticePage recording flow', () => {
     mocks.useRecorder.mockReturnValue(createRecorderState(null));
     const { rerender } = render(<PracticePage />);
 
+    await user.click(screen.getByRole('button', { name: /进入看图描述/ }));
     await user.click(screen.getByRole('button', { name: /办公室白板讨论/ }));
     mocks.useRecorder.mockReturnValue(createRecorderState(recording));
     rerender(<PracticePage />);
@@ -98,9 +126,45 @@ describe('PracticePage recording flow', () => {
 
   it('keeps a completed recording bound to the task active when it was created', async () => {
     const user = userEvent.setup();
-    render(<PracticePage />);
+    const recording = createLatestRecording();
+    mocks.useRecorder.mockReturnValue(createRecorderState(null));
+    const { rerender } = render(<PracticePage />);
 
+    await user.click(screen.getByRole('button', { name: /进入情境对话/ }));
+    await user.click(screen.getByRole('button', { name: /咖啡店点单/ }));
+    mocks.useRecorder.mockReturnValue(createRecorderState(recording));
+    rerender(<PracticePage />);
+    await user.click(screen.getByRole('button', { name: '返回模块' }));
+    await user.click(screen.getByRole('button', { name: /进入看图描述/ }));
     await user.click(screen.getByRole('button', { name: /办公室白板讨论/ }));
+    await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
+
+    await waitFor(() =>
+      expect(mocks.createRecording).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskType: 'scripted-dialogue',
+          taskId: 'dialogue-coffee-order',
+          title: '咖啡店点单'
+        })
+      )
+    );
+  });
+
+  it('keeps a recording bound when the user switches tasks before it is ready', async () => {
+    const user = userEvent.setup();
+    const recording = createLatestRecording();
+    mocks.useRecorder.mockReturnValue(createRecorderState(null));
+    const { rerender } = render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: /进入情境对话/ }));
+    await user.click(screen.getByRole('button', { name: /咖啡店点单/ }));
+    await user.click(screen.getByRole('button', { name: '开始录音' }));
+    await user.click(screen.getByRole('button', { name: '返回模块' }));
+    await user.click(screen.getByRole('button', { name: /进入看图描述/ }));
+    await user.click(screen.getByRole('button', { name: /办公室白板讨论/ }));
+
+    mocks.useRecorder.mockReturnValue(createRecorderState(recording));
+    rerender(<PracticePage />);
     await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
 
     await waitFor(() =>
@@ -120,6 +184,8 @@ describe('PracticePage recording flow', () => {
     mocks.createRecording.mockReturnValue(save.promise);
     render(<PracticePage />);
 
+    await user.click(screen.getByRole('button', { name: /进入情境对话/ }));
+    await user.click(screen.getByRole('button', { name: /咖啡店点单/ }));
     const saveButton = screen.getByRole('button', { name: '保存本轮录音' });
     await user.click(saveButton);
     expect(saveButton).toBeDisabled();
@@ -137,6 +203,8 @@ describe('PracticePage recording flow', () => {
     mocks.createRecording.mockRejectedValue(new Error('storage unavailable'));
     render(<PracticePage />);
 
+    await user.click(screen.getByRole('button', { name: /进入情境对话/ }));
+    await user.click(screen.getByRole('button', { name: /咖啡店点单/ }));
     await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
 
     expect(await screen.findByText('保存失败，请重试。')).toBeInTheDocument();
@@ -151,6 +219,8 @@ describe('PracticePage recording flow', () => {
     mocks.useRecorder.mockReturnValue(createRecorderState(firstRecording));
     const { rerender } = render(<PracticePage />);
 
+    await user.click(screen.getByRole('button', { name: /进入情境对话/ }));
+    await user.click(screen.getByRole('button', { name: /咖啡店点单/ }));
     await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
     expect(await screen.findByText('已保存到本地历史记录。')).toBeInTheDocument();
 
@@ -170,6 +240,8 @@ describe('PracticePage recording flow', () => {
     mocks.useRecorder.mockReturnValue(createRecorderState(firstRecording));
     const { rerender } = render(<PracticePage />);
 
+    await user.click(screen.getByRole('button', { name: /进入情境对话/ }));
+    await user.click(screen.getByRole('button', { name: /咖啡店点单/ }));
     await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
 
     mocks.useRecorder.mockReturnValue(createRecorderState(secondRecording));

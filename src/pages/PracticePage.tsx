@@ -2,13 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, RotateCcw, Save, Square } from 'lucide-react';
 import { createRecording } from '../data/recordingRepository';
 import { formatDuration } from '../domain/practice';
-import { getPracticeTaskById, getPracticeTaskTypeLabel, listPracticeTasks, type PracticeTask } from '../domain/taskCatalog';
+import {
+  getPracticeTaskById,
+  getPracticeTaskTypeLabel,
+  listPracticeModules,
+  listPracticeTasksByModule,
+  type PracticeModuleId,
+  type PracticeTask
+} from '../domain/taskCatalog';
 import { useRecorder } from '../hooks/useRecorder';
 
 type LatestRecording = NonNullable<ReturnType<typeof useRecorder>['latestRecording']>;
 
-const practiceTasks = listPracticeTasks();
-const defaultTask = practiceTasks[0];
+const practiceModules = listPracticeModules();
 
 function TaskDetail({ task }: { task: PracticeTask }) {
   if (task.type === 'scripted-dialogue') {
@@ -87,8 +93,9 @@ function ExpressionList({ expressions }: { expressions: string[] }) {
 function PracticePage() {
   const recorder = useRecorder();
   const currentRecordingRef = useRef<LatestRecording | null>(null);
-  const selectedTaskRef = useRef<PracticeTask>(defaultTask);
-  const [selectedTaskId, setSelectedTaskId] = useState(defaultTask.id);
+  const selectedTaskRef = useRef<PracticeTask | null>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<PracticeModuleId | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [recordingTaskId, setRecordingTaskId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -96,7 +103,11 @@ function PracticePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedRecording, setSavedRecording] = useState<LatestRecording | null>(null);
 
-  const selectedTask = getPracticeTaskById(selectedTaskId) ?? defaultTask;
+  const selectedModule = selectedModuleId
+    ? (practiceModules.find((module) => module.id === selectedModuleId) ?? null)
+    : null;
+  const moduleTasks = selectedModuleId ? listPracticeTasksByModule(selectedModuleId) : [];
+  const selectedTask = selectedTaskId ? getPracticeTaskById(selectedTaskId) : null;
   const recordingTask = recordingTaskId ? getPracticeTaskById(recordingTaskId) : null;
 
   selectedTaskRef.current = selectedTask;
@@ -114,7 +125,7 @@ function PracticePage() {
       return;
     }
 
-    setRecordingTaskId(selectedTaskRef.current.id);
+    setRecordingTaskId((currentTaskId) => currentTaskId ?? selectedTaskRef.current?.id ?? null);
     const nextAudioUrl = URL.createObjectURL(recorder.latestRecording.blob);
     setAudioUrl(nextAudioUrl);
 
@@ -127,7 +138,8 @@ function PracticePage() {
     return recorder.latestRecording ? formatDuration(recorder.latestRecording.durationMs) : '0:00';
   }, [recorder.latestRecording]);
 
-  const isSaveDisabled = isSaving || !recorder.latestRecording || savedRecording === recorder.latestRecording;
+  const taskToSave = recordingTask ?? selectedTask;
+  const isSaveDisabled = isSaving || !recorder.latestRecording || !taskToSave || savedRecording === recorder.latestRecording;
 
   function clearSaveState() {
     setSaveMessage(null);
@@ -137,8 +149,25 @@ function PracticePage() {
   }
 
   function startRecording() {
+    if (!selectedTask) {
+      return;
+    }
+
     clearSaveState();
+    setRecordingTaskId(selectedTask.id);
     recorder.start();
+  }
+
+  function enterModule(moduleId: PracticeModuleId) {
+    setSelectedModuleId(moduleId);
+    setSelectedTaskId(null);
+    clearSaveState();
+  }
+
+  function backToModules() {
+    setSelectedModuleId(null);
+    setSelectedTaskId(null);
+    clearSaveState();
   }
 
   function selectTask(taskId: string) {
@@ -147,12 +176,11 @@ function PracticePage() {
   }
 
   async function saveLatestRecording() {
-    if (!recorder.latestRecording || isSaveDisabled) {
+    if (!recorder.latestRecording || isSaveDisabled || !taskToSave) {
       return;
     }
 
     const recordingToSave = recorder.latestRecording;
-    const taskToSave = recordingTask ?? selectedTask;
     setIsSaving(true);
     setSaveMessage(null);
     setSaveError(null);
@@ -186,6 +214,7 @@ function PracticePage() {
 
   function resetRecording() {
     clearSaveState();
+    setRecordingTaskId(null);
     recorder.reset();
   }
 
@@ -195,25 +224,55 @@ function PracticePage() {
       <h1 id="practice-title">录音练习</h1>
       <p>选择一个本地任务，按提示完成英文输出。当前阶段不接入 ASR 或 LLM，先训练连续开口和任务完成度。</p>
 
-      <section className="task-selector" aria-label="练习任务">
-        {practiceTasks.map((task) => (
-          <button
-            className="task-card"
-            type="button"
-            aria-pressed={task.id === selectedTask.id}
-            key={task.id}
-            onClick={() => selectTask(task.id)}
-          >
-            <span>{getPracticeTaskTypeLabel(task.type)}</span>
-            <strong>{task.title}</strong>
-            <small>{task.durationSec} 秒 · {task.difficulty}</small>
-          </button>
-        ))}
-      </section>
+      {!selectedModule && (
+        <section className="module-selector" aria-label="核心练习模块">
+          {practiceModules.map((module) => (
+            <button className="module-card" type="button" key={module.id} onClick={() => enterModule(module.id)}>
+              <span>核心功能</span>
+              <strong>{module.title}</strong>
+              <small>{module.taskCount} 个素材</small>
+              <p>{module.summary}</p>
+              <em>进入{module.title}</em>
+            </button>
+          ))}
+        </section>
+      )}
 
-      <TaskDetail task={selectedTask} />
+      {selectedModule && (
+        <>
+          <div className="module-header">
+            <button className="secondary-control" type="button" onClick={backToModules}>
+              返回模块
+            </button>
+            <div>
+              <span>当前模块</span>
+              <h2>{selectedModule.title}</h2>
+              <p>{selectedModule.summary}</p>
+            </div>
+          </div>
 
-      <section className="practice-recorder" aria-label="录音面板">
+          <section className="task-selector" aria-label={`${selectedModule.title}素材`}>
+            {moduleTasks.map((task) => (
+              <button
+                className="task-card"
+                type="button"
+                aria-pressed={task.id === selectedTask?.id}
+                key={task.id}
+                onClick={() => selectTask(task.id)}
+              >
+                <span>{getPracticeTaskTypeLabel(task.type)}</span>
+                <strong>{task.title}</strong>
+                <small>{task.durationSec} 秒 · {task.difficulty}</small>
+              </button>
+            ))}
+          </section>
+        </>
+      )}
+
+      {selectedTask && <TaskDetail task={selectedTask} />}
+
+      {selectedTask && (
+        <section className="practice-recorder" aria-label="录音面板">
         <div className="timer" aria-label="本轮录音时长">
           {durationLabel}
         </div>
@@ -257,7 +316,8 @@ function PracticePage() {
             </button>
           </div>
         )}
-      </section>
+        </section>
+      )}
     </section>
   );
 }

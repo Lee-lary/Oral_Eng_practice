@@ -197,6 +197,95 @@ h1 {
   margin-top: 28px;
 }
 
+.module-selector {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.module-card {
+  display: grid;
+  gap: 10px;
+  min-height: 172px;
+  border: 1px solid #d6dee8;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  color: #172033;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.module-card:hover,
+.module-card:focus-visible {
+  border-color: #0f766e;
+  background: #f0fdfa;
+}
+
+.module-card span,
+.module-header span {
+  color: #1f7668;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.module-card strong {
+  color: #0f172a;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.module-card small {
+  color: #66758a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.module-card p {
+  margin: 0;
+  color: #465568;
+  font-size: 15px;
+}
+
+.module-card em {
+  align-self: end;
+  color: #0f766e;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.module-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 28px;
+  border: 1px solid #dde3ea;
+  border-radius: 8px;
+  padding: 18px;
+  background: #f8fafc;
+}
+
+.module-header .secondary-control {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.module-header h2 {
+  margin: 4px 0 0;
+  color: #0f172a;
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.module-header p {
+  margin: 8px 0 0;
+  color: #465568;
+  font-size: 16px;
+}
+
 .task-selector {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -599,9 +688,14 @@ h1 {
     grid-template-columns: 1fr;
   }
 
+  .module-selector,
   .task-selector,
   .task-columns {
     grid-template-columns: 1fr;
+  }
+
+  .module-header {
+    flex-direction: column;
   }
 
   .content-panel {

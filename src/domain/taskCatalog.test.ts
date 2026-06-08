@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   getPracticeTaskById,
   getPracticeTaskTypeLabel,
+  listPracticeModules,
   listPracticeTasks,
+  listPracticeTasksByModule,
   listPracticeTaskTypes
 } from './taskCatalog';
 
@@ -26,6 +28,30 @@ describe('taskCatalog', () => {
     );
     expect(tasks.filter((task) => task.type === 'scripted-dialogue')).toHaveLength(2);
     expect(tasks.filter((task) => task.type === 'picture-description')).toHaveLength(2);
+  });
+
+  it('groups tasks by practice module', () => {
+    expect(listPracticeModules()).toEqual([
+      expect.objectContaining({
+        id: 'scripted-dialogue',
+        title: '情境对话',
+        taskCount: 2
+      }),
+      expect.objectContaining({
+        id: 'picture-description',
+        title: '看图描述',
+        taskCount: 2
+      })
+    ]);
+
+    expect(listPracticeTasksByModule('scripted-dialogue').map((task) => task.id)).toEqual([
+      'dialogue-coffee-order',
+      'dialogue-hotel-checkin'
+    ]);
+    expect(listPracticeTasksByModule('picture-description').map((task) => task.id)).toEqual([
+      'picture-office-whiteboard',
+      'picture-park-weekend'
+    ]);
   });
 
   it('finds tasks by id', () => {
