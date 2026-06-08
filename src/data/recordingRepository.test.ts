@@ -100,4 +100,39 @@ describe('recordingRepository', () => {
       })
     ]);
   });
+
+  it('persists scripted dialogue turn metadata with recordings', async () => {
+    const blob = new Blob(['audio'], { type: 'audio/webm' });
+
+    await createRecording({
+      taskType: 'scripted-dialogue',
+      taskId: 'dialogue-coffee-order',
+      title: 'Coffee order',
+      blob,
+      mimeType: blob.type,
+      durationMs: 18_000,
+      dialogueTurn: {
+        turnId: 'coffee-order-drink',
+        turnIndex: 0,
+        totalTurns: 3,
+        npcLine: 'Hi there. What can I get for you today?',
+        userPrompt: '说明你想要的饮品和杯型。',
+        expectedSlots: ['drink']
+      },
+      createdAt: '2026-06-05T10:00:00.000Z'
+    });
+
+    await expect(listRecordings()).resolves.toEqual([
+      expect.objectContaining({
+        taskType: 'scripted-dialogue',
+        taskId: 'dialogue-coffee-order',
+        dialogueTurn: expect.objectContaining({
+          turnId: 'coffee-order-drink',
+          turnIndex: 0,
+          totalTurns: 3,
+          expectedSlots: ['drink']
+        })
+      })
+    ]);
+  });
 });

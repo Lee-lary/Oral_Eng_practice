@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, RotateCcw, Save, Square } from 'lucide-react';
 import { createRecording } from '../data/recordingRepository';
-import { formatDuration } from '../domain/practice';
+import { formatDuration, type ScriptedDialogueTurnRecord } from '../domain/practice';
 import { buildLocalReviewSummary } from '../domain/recordingReview';
 import {
   getPracticeTaskById,
@@ -17,8 +17,40 @@ type LatestRecording = NonNullable<ReturnType<typeof useRecorder>['latestRecordi
 
 const practiceModules = listPracticeModules();
 
-function TaskDetail({ task }: { task: PracticeTask }) {
+function buildDialogueTurnRecord(
+  task: PracticeTask | null,
+  turnIndex: number | null
+): ScriptedDialogueTurnRecord | undefined {
+  if (!task || task.type !== 'scripted-dialogue' || turnIndex === null) {
+    return undefined;
+  }
+
+  const turn = task.turns[turnIndex];
+  if (!turn) {
+    return undefined;
+  }
+
+  return {
+    turnId: turn.id,
+    turnIndex,
+    totalTurns: task.turns.length,
+    npcLine: turn.npcLine,
+    userPrompt: turn.userPrompt,
+    expectedSlots: [...turn.expectedSlots]
+  };
+}
+
+function TaskDetail({
+  selectedDialogueTurnIndex = 0,
+  task
+}: {
+  selectedDialogueTurnIndex?: number;
+  task: PracticeTask;
+}) {
   if (task.type === 'scripted-dialogue') {
+    const currentTurnIndex = Math.min(Math.max(selectedDialogueTurnIndex, 0), task.turns.length - 1);
+    const currentTurn = task.turns[currentTurnIndex];
+
     return (
       <section className="task-detail" aria-label="情境对话任务说明">
         <div>
@@ -28,24 +60,25 @@ function TaskDetail({ task }: { task: PracticeTask }) {
           <p className="task-goal">目标：{task.userGoal}</p>
         </div>
 
-        <div className="task-columns">
-          <section>
-            <h3>NPC 台词</h3>
-            <ol>
-              {task.npcLines.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ol>
+        {currentTurn && (
+          <section className="dialogue-turn-panel" aria-label="当前对话轮次">
+            <div className="dialogue-turn-heading">
+              <span>第 {currentTurnIndex + 1}/{task.turns.length} 轮</span>
+              <strong>当前回应目标</strong>
+            </div>
+            <div className="dialogue-turn-lines">
+              <p>
+                <span>NPC：</span>
+                {currentTurn.npcLine}
+              </p>
+              <p>
+                <span>你的回应：</span>
+                {currentTurn.userPrompt}
+              </p>
+            </div>
+            <p className="slot-list">预期槽位：{currentTurn.expectedSlots.join('、')}</p>
           </section>
-          <section>
-            <h3>你需要完成</h3>
-            <ol>
-              {task.userPrompts.map((prompt) => (
-                <li key={prompt}>{prompt}</li>
-              ))}
-            </ol>
-          </section>
-        </div>
+        )}
 
         <ExpressionList expressions={task.usefulExpressions} />
       </section>
@@ -95,9 +128,12 @@ function PracticePage() {
   const recorder = useRecorder();
   const currentRecordingRef = useRef<LatestRecording | null>(null);
   const selectedTaskRef = useRef<PracticeTask | null>(null);
+  const selectedDialogueTurnRef = useRef<number | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<PracticeModuleId | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedDialogueTurnIndex, setSelectedDialogueTurnIndex] = useState(0);
   const [recordingTaskId, setRecordingTaskId] = useState<string | null>(null);
+  const [recordingDialogueTurnIndex, setRecordingDialogueTurnIndex] = useState<number | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -112,6 +148,7 @@ function PracticePage() {
   const recordingTask = recordingTaskId ? getPracticeTaskById(recordingTaskId) : null;
 
   selectedTaskRef.current = selectedTask;
+  selectedDialogueTurnRef.current = selectedTask?.type === 'scripted-dialogue' ? selectedDialogueTurnIndex : null;
 
   useEffect(() => {
     currentRecordingRef.current = recorder.latestRecording;
@@ -123,10 +160,12 @@ function PracticePage() {
     if (!recorder.latestRecording) {
       setAudioUrl(null);
       setRecordingTaskId(null);
+      setRecordingDialogueTurnIndex(null);
       return;
     }
 
     setRecordingTaskId((currentTaskId) => currentTaskId ?? selectedTaskRef.current?.id ?? null);
+    setRecordingDialogueTurnIndex((currentTurnIndex) => currentTurnIndex ?? selectedDialogueTurnRef.current);
     const nextAudioUrl = URL.createObjectURL(recorder.latestRecording.blob);
     setAudioUrl(nextAudioUrl);
 
@@ -156,24 +195,38 @@ function PracticePage() {
 
     clearSaveState();
     setRecordingTaskId(selectedTask.id);
+    setRecordingDialogueTurnIndex(selectedTask.type === 'scripted-dialogue' ? selectedDialogueTurnIndex : null);
     recorder.start();
   }
 
   function enterModule(moduleId: PracticeModuleId) {
     setSelectedModuleId(moduleId);
     setSelectedTaskId(null);
+    setSelectedDialogueTurnIndex(0);
     clearSaveState();
   }
 
   function backToModules() {
     setSelectedModuleId(null);
     setSelectedTaskId(null);
+    setSelectedDialogueTurnIndex(0);
     clearSaveState();
   }
 
   function selectTask(taskId: string) {
     setSelectedTaskId(taskId);
+    setSelectedDialogueTurnIndex(0);
     clearSaveState();
+  }
+
+  function moveDialogueTurn(nextIndex: number) {
+    if (!selectedTask || selectedTask.type !== 'scripted-dialogue') {
+      return;
+    }
+
+    setSelectedDialogueTurnIndex(Math.min(Math.max(nextIndex, 0), selectedTask.turns.length - 1));
+    setSaveMessage(null);
+    setSaveError(null);
   }
 
   async function saveLatestRecording() {
@@ -187,6 +240,11 @@ function PracticePage() {
     setSaveError(null);
 
     try {
+      const dialogueTurnToSave = buildDialogueTurnRecord(
+        taskToSave,
+        recordingDialogueTurnIndex ?? (taskToSave.id === selectedTask?.id ? selectedDialogueTurnIndex : null)
+      );
+
       await createRecording({
         taskType: taskToSave.type,
         taskId: taskToSave.id,
@@ -194,12 +252,21 @@ function PracticePage() {
         blob: recordingToSave.blob,
         mimeType: recordingToSave.mimeType,
         durationMs: recordingToSave.durationMs,
+        dialogueTurn: dialogueTurnToSave,
         reviewSummary: buildLocalReviewSummary(taskToSave, recordingToSave.durationMs)
       });
 
       if (currentRecordingRef.current === recordingToSave) {
         setSavedRecording(recordingToSave);
         setSaveMessage('已保存到本地历史记录。');
+        if (
+          dialogueTurnToSave &&
+          selectedTaskRef.current?.id === taskToSave.id &&
+          selectedDialogueTurnRef.current === dialogueTurnToSave.turnIndex &&
+          dialogueTurnToSave.turnIndex < dialogueTurnToSave.totalTurns - 1
+        ) {
+          setSelectedDialogueTurnIndex(dialogueTurnToSave.turnIndex + 1);
+        }
       }
     } catch {
       if (currentRecordingRef.current === recordingToSave) {
@@ -217,6 +284,7 @@ function PracticePage() {
   function resetRecording() {
     clearSaveState();
     setRecordingTaskId(null);
+    setRecordingDialogueTurnIndex(null);
     recorder.reset();
   }
 
@@ -271,7 +339,28 @@ function PracticePage() {
         </>
       )}
 
-      {selectedTask && <TaskDetail task={selectedTask} />}
+      {selectedTask && <TaskDetail selectedDialogueTurnIndex={selectedDialogueTurnIndex} task={selectedTask} />}
+
+      {selectedTask?.type === 'scripted-dialogue' && (
+        <div className="dialogue-turn-controls" aria-label="脚本轮次控制">
+          <button
+            className="secondary-control"
+            type="button"
+            disabled={selectedDialogueTurnIndex === 0}
+            onClick={() => moveDialogueTurn(selectedDialogueTurnIndex - 1)}
+          >
+            上一轮
+          </button>
+          <button
+            className="secondary-control"
+            type="button"
+            disabled={selectedDialogueTurnIndex >= selectedTask.turns.length - 1}
+            onClick={() => moveDialogueTurn(selectedDialogueTurnIndex + 1)}
+          >
+            下一轮
+          </button>
+        </div>
+      )}
 
       {selectedTask && (
         <section className="practice-recorder" aria-label="录音面板">

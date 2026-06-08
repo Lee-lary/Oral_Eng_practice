@@ -8,8 +8,18 @@ export interface RecordingRecord {
   blob: Blob;
   mimeType: string;
   durationMs: number;
+  dialogueTurn?: ScriptedDialogueTurnRecord;
   reviewSummary?: RecordingReviewSummary;
   createdAt: string;
+}
+
+export interface ScriptedDialogueTurnRecord {
+  turnId: string;
+  turnIndex: number;
+  totalTurns: number;
+  npcLine: string;
+  userPrompt: string;
+  expectedSlots: string[];
 }
 
 export type RecordingDurationBand = 'too-short' | 'on-target' | 'too-long';

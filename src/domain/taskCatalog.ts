@@ -16,6 +16,14 @@ export interface ScriptedDialogueTask extends BasePracticeTask {
   userGoal: string;
   npcLines: string[];
   userPrompts: string[];
+  turns: ScriptedDialogueTurn[];
+}
+
+export interface ScriptedDialogueTurn {
+  id: string;
+  npcLine: string;
+  userPrompt: string;
+  expectedSlots: string[];
 }
 
 export interface PictureDescriptionTask extends BasePracticeTask {
@@ -49,6 +57,26 @@ const PRACTICE_TASKS: PracticeTask[] = [
       'No problem. Would you like it for here or to go?'
     ],
     userPrompts: ['说明你想要的饮品和杯型。', '提出少糖要求。', '确认是否可以外带。'],
+    turns: [
+      {
+        id: 'coffee-order-drink',
+        npcLine: 'Hi there. What can I get for you today?',
+        userPrompt: '说明你想要的饮品和杯型。',
+        expectedSlots: ['drink']
+      },
+      {
+        id: 'coffee-order-size',
+        npcLine: 'Sure. What size would you like?',
+        userPrompt: '提出少糖要求。',
+        expectedSlots: ['size']
+      },
+      {
+        id: 'coffee-order-takeaway',
+        npcLine: 'No problem. Would you like it for here or to go?',
+        userPrompt: '确认是否可以外带。',
+        expectedSlots: ['takeaway']
+      }
+    ],
     usefulExpressions: [
       'Could I get a medium latte, please?',
       'Could you make it less sweet?',
@@ -69,6 +97,26 @@ const PRACTICE_TASKS: PracticeTask[] = [
       'Your room is ready. Breakfast is served from 7 to 10.'
     ],
     userPrompts: ['说明你想办理入住。', '提供姓名并提到预订。', '确认早餐时间和地点。'],
+    turns: [
+      {
+        id: 'hotel-checkin-arrival',
+        npcLine: 'Good evening. Welcome to our hotel.',
+        userPrompt: '说明你想办理入住。',
+        expectedSlots: ['checkin_intent']
+      },
+      {
+        id: 'hotel-checkin-name',
+        npcLine: 'May I have your name, please?',
+        userPrompt: '提供姓名并提到预订。',
+        expectedSlots: ['reservation_name']
+      },
+      {
+        id: 'hotel-checkin-breakfast',
+        npcLine: 'Your room is ready. Breakfast is served from 7 to 10.',
+        userPrompt: '确认早餐时间和地点。',
+        expectedSlots: ['breakfast_time', 'breakfast_place']
+      }
+    ],
     usefulExpressions: [
       'I have a reservation under the name...',
       'Could you confirm the breakfast time?',
@@ -133,6 +181,10 @@ function cloneTask(task: PracticeTask): PracticeTask {
       ...task,
       npcLines: [...task.npcLines],
       userPrompts: [...task.userPrompts],
+      turns: task.turns.map((turn) => ({
+        ...turn,
+        expectedSlots: [...turn.expectedSlots]
+      })),
       usefulExpressions: [...task.usefulExpressions]
     };
   }

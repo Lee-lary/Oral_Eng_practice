@@ -61,6 +61,22 @@ function RecordingReviewSummary({ recording }: { recording: RecordingRecord }) {
   );
 }
 
+function RecordingDialogueTurn({ recording }: { recording: RecordingRecord }) {
+  if (!recording.dialogueTurn) {
+    return null;
+  }
+
+  return (
+    <section className="recording-turn-detail" aria-label={`${recording.title} 对话轮次`}>
+      <strong>
+        第 {recording.dialogueTurn.turnIndex + 1}/{recording.dialogueTurn.totalTurns} 轮
+      </strong>
+      <p>NPC：{recording.dialogueTurn.npcLine}</p>
+      <p>你的回应：{recording.dialogueTurn.userPrompt}</p>
+    </section>
+  );
+}
+
 function RecordingHistoryItem({
   isDeleting,
   onDelete,
@@ -79,6 +95,7 @@ function RecordingHistoryItem({
           {' · '}
           {formatDuration(recording.durationMs)} · {new Date(recording.createdAt).toLocaleString()}
         </p>
+        <RecordingDialogueTurn recording={recording} />
       </div>
 
       <RecordingReviewSummary recording={recording} />

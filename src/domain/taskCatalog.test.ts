@@ -74,6 +74,23 @@ describe('taskCatalog', () => {
     );
     expect(dialogueTask?.npcLines).toContain('Hi there. What can I get for you today?');
     expect(dialogueTask?.userPrompts).toContain('说明你想要的饮品和杯型。');
+    expect(dialogueTask?.turns).toEqual([
+      expect.objectContaining({
+        id: 'coffee-order-drink',
+        npcLine: 'Hi there. What can I get for you today?',
+        expectedSlots: ['drink']
+      }),
+      expect.objectContaining({
+        id: 'coffee-order-size',
+        npcLine: 'Sure. What size would you like?',
+        expectedSlots: ['size']
+      }),
+      expect.objectContaining({
+        id: 'coffee-order-takeaway',
+        npcLine: 'No problem. Would you like it for here or to go?',
+        expectedSlots: ['takeaway']
+      })
+    ]);
 
     expect(pictureTask?.descriptionSteps).toEqual([
       '先用一句话总述画面。',

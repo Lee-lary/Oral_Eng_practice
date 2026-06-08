@@ -101,6 +101,43 @@ describe('PracticePage recording flow', () => {
     expect(screen.getByText('再描述三处可见细节。')).toBeInTheDocument();
   });
 
+  it('runs scripted dialogue as a multi-turn recording flow', async () => {
+    const user = userEvent.setup();
+    const recording = createLatestRecording(18_000);
+    mocks.useRecorder.mockReturnValue(createRecorderState(null));
+    const { rerender } = render(<PracticePage />);
+
+    await user.click(screen.getByRole('button', { name: /进入情境对话/ }));
+    await user.click(screen.getByRole('button', { name: /咖啡店点单/ }));
+
+    expect(screen.getByText('第 1/3 轮')).toBeInTheDocument();
+    expect(screen.getByText('Hi there. What can I get for you today?')).toBeInTheDocument();
+    expect(screen.getByText('说明你想要的饮品和杯型。')).toBeInTheDocument();
+
+    mocks.useRecorder.mockReturnValue(createRecorderState(recording));
+    rerender(<PracticePage />);
+    await user.click(screen.getByRole('button', { name: '保存本轮录音' }));
+
+    await waitFor(() =>
+      expect(mocks.createRecording).toHaveBeenCalledWith(
+        expect.objectContaining({
+          taskType: 'scripted-dialogue',
+          taskId: 'dialogue-coffee-order',
+          dialogueTurn: expect.objectContaining({
+            turnId: 'coffee-order-drink',
+            turnIndex: 0,
+            totalTurns: 3,
+            npcLine: 'Hi there. What can I get for you today?',
+            userPrompt: '说明你想要的饮品和杯型。',
+            expectedSlots: ['drink']
+          })
+        })
+      )
+    );
+    expect(screen.getByText('第 2/3 轮')).toBeInTheDocument();
+    expect(screen.getByText('Sure. What size would you like?')).toBeInTheDocument();
+  });
+
   it('saves the selected task metadata', async () => {
     const user = userEvent.setup();
     const recording = createLatestRecording();

@@ -81,6 +81,31 @@ describe('ReviewPage history flow', () => {
     expect(screen.getByText('下一轮先按“总述-细节-推测”说满 60 秒。')).toBeInTheDocument();
   });
 
+  it('renders scripted dialogue turn metadata when available', async () => {
+    mocks.listRecordings.mockResolvedValue([
+      createSavedRecording({
+        taskType: 'scripted-dialogue',
+        taskId: 'dialogue-coffee-order',
+        title: '咖啡店点单',
+        dialogueTurn: {
+          turnId: 'coffee-order-drink',
+          turnIndex: 0,
+          totalTurns: 3,
+          npcLine: 'Hi there. What can I get for you today?',
+          userPrompt: '说明你想要的饮品和杯型。',
+          expectedSlots: ['drink']
+        }
+      })
+    ]);
+
+    render(<ReviewPage />);
+
+    expect(await screen.findByText('咖啡店点单')).toBeInTheDocument();
+    expect(screen.getByText('第 1/3 轮')).toBeInTheDocument();
+    expect(screen.getByText('NPC：Hi there. What can I get for you today?')).toBeInTheDocument();
+    expect(screen.getByText('你的回应：说明你想要的饮品和杯型。')).toBeInTheDocument();
+  });
+
   it('filters recordings by task type', async () => {
     const user = userEvent.setup();
     mocks.listRecordings.mockResolvedValue([
