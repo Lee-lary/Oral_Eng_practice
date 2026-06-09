@@ -13,6 +13,7 @@ export async function createRecording(input: NewRecordingInput): Promise<Recordi
     mimeType: input.mimeType,
     durationMs: input.durationMs,
     dialogueTurn: input.dialogueTurn,
+    fluencyMetrics: input.fluencyMetrics,
     reviewSummary: input.reviewSummary,
     createdAt: input.createdAt ?? nowIso()
   };

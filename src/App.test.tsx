@@ -31,6 +31,15 @@ describe('App routes', () => {
 
     expect(screen.getByRole('heading', { name: '历史记录' })).toBeInTheDocument();
   });
+
+  it('exposes the trend page from the top nav', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('link', { name: '趋势' }));
+
+    expect(screen.getByRole('heading', { name: '趋势' })).toBeInTheDocument();
+  });
 });
 
 describe('Task 1 shell assets and responsive styles', () => {

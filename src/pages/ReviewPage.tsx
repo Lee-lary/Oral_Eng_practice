@@ -77,6 +77,32 @@ function RecordingDialogueTurn({ recording }: { recording: RecordingRecord }) {
   );
 }
 
+function formatMetricSeconds(ms: number): string {
+  return `${(ms / 1_000).toFixed(1)} 秒`;
+}
+
+function formatMetricPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function RecordingFluencyMetrics({ recording }: { recording: RecordingRecord }) {
+  if (!recording.fluencyMetrics) {
+    return null;
+  }
+
+  return (
+    <section className="recording-fluency-metrics" aria-label={`${recording.title} 本地流利度`}>
+      <strong>本地流利度</strong>
+      <div>
+        <span>起说延迟 {formatMetricSeconds(recording.fluencyMetrics.startDelayMs)}</span>
+        <span>长停顿 {recording.fluencyMetrics.longPauseCount} 次</span>
+        <span>停顿占比 {formatMetricPercent(recording.fluencyMetrics.pauseRatio)}</span>
+        <span>有声时长 {formatDuration(recording.fluencyMetrics.voicedMs)}</span>
+      </div>
+    </section>
+  );
+}
+
 function RecordingHistoryItem({
   isDeleting,
   onDelete,
@@ -96,6 +122,7 @@ function RecordingHistoryItem({
           {formatDuration(recording.durationMs)} · {new Date(recording.createdAt).toLocaleString()}
         </p>
         <RecordingDialogueTurn recording={recording} />
+        <RecordingFluencyMetrics recording={recording} />
       </div>
 
       <RecordingReviewSummary recording={recording} />

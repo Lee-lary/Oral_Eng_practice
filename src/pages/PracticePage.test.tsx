@@ -4,8 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PracticePage from './PracticePage';
 
 const mocks = vi.hoisted(() => ({
+  analyzeRecordingFluency: vi.fn(),
   createRecording: vi.fn(),
   useRecorder: vi.fn()
+}));
+
+vi.mock('../audio/fluencyAnalysis', () => ({
+  analyzeRecordingFluency: mocks.analyzeRecordingFluency
 }));
 
 vi.mock('../data/recordingRepository', () => ({
@@ -50,6 +55,15 @@ function createDeferred<T>() {
 describe('PracticePage recording flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.analyzeRecordingFluency.mockResolvedValue({
+      source: 'local-vad',
+      durationMs: 4_200,
+      voicedMs: 3_000,
+      startDelayMs: 500,
+      pauseRatio: 0.29,
+      longPauseCount: 1,
+      longPauseMs: 900
+    });
     mocks.useRecorder.mockReturnValue(createRecorderState());
     mocks.createRecording.mockResolvedValue({});
   });
@@ -156,6 +170,12 @@ describe('PracticePage recording flow', () => {
           taskType: 'picture-description',
           taskId: 'picture-office-whiteboard',
           title: '办公室白板讨论',
+          fluencyMetrics: expect.objectContaining({
+            source: 'local-vad',
+            startDelayMs: 500,
+            pauseRatio: 0.29,
+            longPauseCount: 1
+          }),
           reviewSummary: expect.objectContaining({
             source: 'local-rules',
             durationBand: 'too-short',

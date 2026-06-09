@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 import PracticePage from './pages/PracticePage';
 import ReviewPage from './pages/ReviewPage';
+import TrendPage from './pages/TrendPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <nav className="main-nav" aria-label="主导航">
           <NavLink to="/practice">练习</NavLink>
           <NavLink to="/review">复盘</NavLink>
+          <NavLink to="/trends">趋势</NavLink>
         </nav>
       </header>
 
@@ -22,6 +24,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/practice" element={<PracticePage />} />
           <Route path="/review" element={<ReviewPage />} />
+          <Route path="/trends" element={<TrendPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

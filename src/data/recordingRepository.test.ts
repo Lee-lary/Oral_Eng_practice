@@ -135,4 +135,40 @@ describe('recordingRepository', () => {
       })
     ]);
   });
+
+  it('persists local fluency metrics with recordings', async () => {
+    const blob = new Blob(['audio'], { type: 'audio/webm' });
+
+    await createRecording({
+      taskType: 'picture-description',
+      taskId: 'picture-office-whiteboard',
+      title: 'Picture practice',
+      blob,
+      mimeType: blob.type,
+      durationMs: 60_000,
+      fluencyMetrics: {
+        source: 'local-vad',
+        durationMs: 60_000,
+        voicedMs: 42_000,
+        startDelayMs: 800,
+        pauseRatio: 0.3,
+        longPauseCount: 2,
+        longPauseMs: 1_600
+      },
+      createdAt: '2026-06-09T10:00:00.000Z'
+    });
+
+    await expect(listRecordings()).resolves.toEqual([
+      expect.objectContaining({
+        taskType: 'picture-description',
+        taskId: 'picture-office-whiteboard',
+        fluencyMetrics: expect.objectContaining({
+          source: 'local-vad',
+          startDelayMs: 800,
+          pauseRatio: 0.3,
+          longPauseCount: 2
+        })
+      })
+    ]);
+  });
 });

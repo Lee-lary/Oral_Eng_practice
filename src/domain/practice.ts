@@ -9,6 +9,7 @@ export interface RecordingRecord {
   mimeType: string;
   durationMs: number;
   dialogueTurn?: ScriptedDialogueTurnRecord;
+  fluencyMetrics?: FluencyMetrics;
   reviewSummary?: RecordingReviewSummary;
   createdAt: string;
 }
@@ -20,6 +21,16 @@ export interface ScriptedDialogueTurnRecord {
   npcLine: string;
   userPrompt: string;
   expectedSlots: string[];
+}
+
+export interface FluencyMetrics {
+  source: 'local-vad';
+  durationMs: number;
+  voicedMs: number;
+  startDelayMs: number;
+  pauseRatio: number;
+  longPauseCount: number;
+  longPauseMs: number;
 }
 
 export type RecordingDurationBand = 'too-short' | 'on-target' | 'too-long';

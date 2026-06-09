@@ -106,6 +106,34 @@ describe('ReviewPage history flow', () => {
     expect(screen.getByText('你的回应：说明你想要的饮品和杯型。')).toBeInTheDocument();
   });
 
+  it('renders local fluency metrics when available', async () => {
+    mocks.listRecordings.mockResolvedValue([
+      createSavedRecording({
+        taskType: 'picture-description',
+        taskId: 'picture-office-whiteboard',
+        title: '办公室白板讨论',
+        fluencyMetrics: {
+          source: 'local-vad',
+          durationMs: 60_000,
+          voicedMs: 42_000,
+          startDelayMs: 800,
+          pauseRatio: 0.3,
+          longPauseCount: 2,
+          longPauseMs: 1_600
+        }
+      })
+    ]);
+
+    render(<ReviewPage />);
+
+    expect(await screen.findByText('办公室白板讨论')).toBeInTheDocument();
+    expect(screen.getByText('本地流利度')).toBeInTheDocument();
+    expect(screen.getByText('起说延迟 0.8 秒')).toBeInTheDocument();
+    expect(screen.getByText('长停顿 2 次')).toBeInTheDocument();
+    expect(screen.getByText('停顿占比 30%')).toBeInTheDocument();
+    expect(screen.getByText('有声时长 0:42')).toBeInTheDocument();
+  });
+
   it('filters recordings by task type', async () => {
     const user = userEvent.setup();
     mocks.listRecordings.mockResolvedValue([

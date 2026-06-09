@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, RotateCcw, Save, Square } from 'lucide-react';
+import { analyzeRecordingFluency } from '../audio/fluencyAnalysis';
 import { createRecording } from '../data/recordingRepository';
-import { formatDuration, type ScriptedDialogueTurnRecord } from '../domain/practice';
+import { formatDuration, type FluencyMetrics, type ScriptedDialogueTurnRecord } from '../domain/practice';
 import { buildLocalReviewSummary } from '../domain/recordingReview';
 import {
   getPracticeTaskById,
@@ -240,6 +241,13 @@ function PracticePage() {
     setSaveError(null);
 
     try {
+      let fluencyMetrics: FluencyMetrics | undefined;
+      try {
+        fluencyMetrics = await analyzeRecordingFluency(recordingToSave.blob);
+      } catch {
+        fluencyMetrics = undefined;
+      }
+
       const dialogueTurnToSave = buildDialogueTurnRecord(
         taskToSave,
         recordingDialogueTurnIndex ?? (taskToSave.id === selectedTask?.id ? selectedDialogueTurnIndex : null)
@@ -253,6 +261,7 @@ function PracticePage() {
         mimeType: recordingToSave.mimeType,
         durationMs: recordingToSave.durationMs,
         dialogueTurn: dialogueTurnToSave,
+        fluencyMetrics,
         reviewSummary: buildLocalReviewSummary(taskToSave, recordingToSave.durationMs)
       });
 

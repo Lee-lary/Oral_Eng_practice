@@ -22,3 +22,10 @@ test('practice page exposes recording controls', async ({ page }) => {
 
   await expect(page.getByRole('button', { name: '开始录音' })).toBeVisible();
 });
+
+test('trend page renders recent metrics area', async ({ page }) => {
+  await page.goto('/trends');
+
+  await expect(page.getByRole('heading', { name: '趋势' })).toBeVisible();
+  await expect(page.getByText('最近 7 天的本地流利度指标会显示在这里')).toBeVisible();
+});
